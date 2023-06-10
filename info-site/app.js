@@ -1,7 +1,7 @@
 import http from "node:http";
 import url from "node:url";
 import fs from "node:fs";
-import querySting from "querystring";
+import { getPlayerData } from "./queryData.js";
 
 const hostname = "127.0.0.1";
 const port = 3000;
@@ -12,8 +12,6 @@ const server = http.createServer((req, res) => {
     console.log("form got submitted lol");
     handleForm(req, res);
 
-    res.writeHead(302, { Location: "/index.html" });
-    res.end();
     return;
   }
 
@@ -51,13 +49,45 @@ startServer(port);
 
 function handleForm(request, res) {
   let body = "";
+  let playerData;
   request.on("data", (chunk) => {
     body += chunk.toString();
   });
 
-  request.on("end", () => {
+  request.on("end", async () => {
     const formData = new URLSearchParams(body);
     const player = formData.get("playername");
-    console.log(player);
+
+    playerData = await getPlayerData(player);
+
+    if (playerData) {
+      let htmlFile = `<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+      </head>
+      <!-- component -->
+      <body >
+           <div>
+            <h1>name : ${playerData.name}</h1>
+            <h2>country : ${playerData.country}</h2>
+            <h2>Goals : ${playerData.goals}</h2>
+            <h2>Trophies: ${playerData.trophies}</h2>
+            <h2>netWorth : ${playerData.netWorth}</h2>
+           </div>
+      </body>
+    </html>
+    `;
+      res.writeHead(302, { "Content-Type": "text/html" });
+      res.end(htmlFile);
+      return;
+    }
+
+    if (!playerData) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("404 Player Not Found");
+    }
   });
 }
