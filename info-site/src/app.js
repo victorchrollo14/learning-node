@@ -2,6 +2,7 @@ import http from "node:http";
 import url from "node:url";
 import fs from "node:fs";
 import { getPlayerData } from "./queryData.js";
+import { routing } from "./routers.js";
 
 const hostname = "127.0.0.1";
 const port = 3000;
@@ -15,18 +16,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.url === "/error.webp") {
+    let contentType = "image/webp";
+    res.setHeader("Content-Type", contentType);
+    const stream = fs.createReadStream("error.webp");
+    stream.pipe(res);
+
+    res.on("finish", () => {
+      stream.destroy();
+    });
+    return;
+  }
+
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html");
   let q = url.parse(req.url, true);
-  let html = `.${q.pathname}`;
+  let html = routing(q.pathname);
   console.log(html);
   fs.readFile(html, (err, data) => {
     res.setHeader("Content-Type", "text/html");
 
-    if (err) {
-      res.statusCode = 404;
-      return res.end("404 not found");
-    }
+    if (err) throw err;
     res.statusCode = 200;
     res.write(data);
     res.end();
@@ -67,6 +77,12 @@ function handleForm(request, res) {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Document</title>
+        <style>
+          body{
+            background:black;
+            color:white;
+          }
+        </style>
       </head>
       <!-- component -->
       <body >
